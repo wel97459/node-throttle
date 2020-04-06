@@ -50,11 +50,15 @@ function Throttle (opts) {
   if (null == opts.highWaterMark) opts.highWaterMark = 0;
   if (null == opts.bps) throw new Error('must pass a "bps" bytes-per-second option');
   if (null == opts.chunkSize) opts.chunkSize = opts.bps / 10 | 0; // 1/10th of "bps" by default
+  if (null == opts.burst) opts.burst = 0; // Burst 0 by default
+  if (null == opts.burstMax) opts.burstMax = opts.bps * 2 | 0;
 
   Transform.call(this, opts);
 
   this.bps = opts.bps;
   this.chunkSize = Math.max(1, opts.chunkSize);
+  this.burst = opts.burst;
+  this.burstMax = opts.burstMax;
 
   this.totalBytes = 0;
   this.startTime = Date.now();
@@ -99,8 +103,13 @@ Throttle.prototype._onchunk = function (output, done) {
 
   if (this.totalBytes > expected) {
     // Use this byte count to calculate how many seconds ahead we are.
+    var rate = this.bps;
+    if(this.totalBytes < this.burst){
+        rate = this.burstMax;
+    }
+
     var remainder = this.totalBytes - expected;
-    var sleepTime = remainder / this.bps * 1000;
+    var sleepTime = remainder / rate * 1000;
     //console.error('sleep time: %d', sleepTime);
     if (sleepTime > 0) {
       setTimeout(d, sleepTime);
