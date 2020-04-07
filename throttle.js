@@ -64,9 +64,10 @@ function Throttle (opts) {
   this.startTime = Date.now();
 
   this._passthroughChunk();
-  
+
   this.rate = this.bps;
   this.rateLast = 0;
+  console.log("Throttle configed");
 }
 inherits(Throttle, Transform);
 
@@ -85,6 +86,7 @@ Parser(Throttle.prototype);
 Throttle.prototype._passthroughChunk = function () {
   this._passthrough(this.chunkSize, this._onchunk);
   this.totalBytes += this.chunkSize;
+  console.log("running");
 };
 
 /**
@@ -97,7 +99,26 @@ Throttle.prototype._passthroughChunk = function () {
 Throttle.prototype._onchunk = function (output, done) {
   var self = this;
   var totalSeconds = (Date.now() - this.startTime) / 1000;
-  var expected = totalSeconds * this.bps;
+  // Use this byte count to calculate how many seconds ahead we are.
+
+  if(this.rate == 0) console.log("Throttle Running!");
+
+  if(this.totalBytes < this.burst){
+      this.rate = this.burstMax;
+  }else{
+      this.rate = this.bps;
+  }
+
+  if(this.rate != this.rateLast){
+      if(this.rate == this.burstMax) console.log("Bursting: ", this.burstMax);
+      if(this.rate == this.bps) console.log("Streaming:", this.bps);
+      console.log("totalBytes: ", this.totalBytes);
+      console.log("newRate: ", this.rate);
+      this.chunkSize = this.rate / 5;
+       this.rateLast = this.rate;
+  }
+
+  var expected = totalSeconds * this.rate;
 
   function d () {
     self._passthroughChunk();
@@ -105,21 +126,6 @@ Throttle.prototype._onchunk = function (output, done) {
   }
 
   if (this.totalBytes > expected) {
-    // Use this byte count to calculate how many seconds ahead we are.
-    if(this.totalBytes < this.burst){
-        this.rate = this.burstMax;
-    }else{
-        this.rate = this.bps;
-    }
-    
-    if(this.rate != this.rateLast){
-        if(this.rate == this.burstMax) console.log("Bursting: ", this.burstMax);
-        if(this.rate == this.bps) console.log("Streaming:", this.bps);
-        console.log("totalBytes: ", this.totalBytes);
-        console.log("newRate: ", this.rate);
-    }
-
-    this.rateLast = this.rate;
 
     var remainder = this.totalBytes - expected;
     var sleepTime = remainder / this.rate * 1000;
