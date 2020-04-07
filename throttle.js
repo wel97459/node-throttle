@@ -64,6 +64,9 @@ function Throttle (opts) {
   this.startTime = Date.now();
 
   this._passthroughChunk();
+  
+  this.rate = this.bps;
+  this.rateLast = 0;
 }
 inherits(Throttle, Transform);
 
@@ -103,13 +106,23 @@ Throttle.prototype._onchunk = function (output, done) {
 
   if (this.totalBytes > expected) {
     // Use this byte count to calculate how many seconds ahead we are.
-    var rate = this.bps;
     if(this.totalBytes < this.burst){
-        rate = this.burstMax;
+        this.rate = this.burstMax;
+    }else{
+        this.rate = this.bps;
+    }
+    
+    if(this.rate != this.rateLast){
+        if(this.rate == this.burstMax) console.log("Bursting: ", this.burstMax);
+        if(this.rate == this.bps) console.log("Streaming:", this.bps);
+        console.log("totalBytes: ", this.totalBytes);
+        console.log("newRate: ", this.rate);
     }
 
+    this.rateLast = this.rate;
+
     var remainder = this.totalBytes - expected;
-    var sleepTime = remainder / rate * 1000;
+    var sleepTime = remainder / this.rate * 1000;
     //console.error('sleep time: %d', sleepTime);
     if (sleepTime > 0) {
       setTimeout(d, sleepTime);
