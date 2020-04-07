@@ -67,7 +67,7 @@ function Throttle (opts) {
 
   this.rate = this.bps;
   this.rateLast = 0;
-  console.log("Throttle configed");
+  //console.log("Throttle configed");
 }
 inherits(Throttle, Transform);
 
@@ -86,7 +86,6 @@ Parser(Throttle.prototype);
 Throttle.prototype._passthroughChunk = function () {
   this._passthrough(this.chunkSize, this._onchunk);
   this.totalBytes += this.chunkSize;
-  console.log("running");
 };
 
 /**
@@ -101,7 +100,7 @@ Throttle.prototype._onchunk = function (output, done) {
   var totalSeconds = (Date.now() - this.startTime) / 1000;
   // Use this byte count to calculate how many seconds ahead we are.
 
-  if(this.rate == 0) console.log("Throttle Running!");
+  //if(this.rateLast == 0) console.log("Throttle Running!");
 
   if(this.totalBytes < this.burst){
       this.rate = this.burstMax;
@@ -112,10 +111,10 @@ Throttle.prototype._onchunk = function (output, done) {
   if(this.rate != this.rateLast){
       if(this.rate == this.burstMax) console.log("Bursting: ", this.burstMax);
       if(this.rate == this.bps) console.log("Streaming:", this.bps);
-      console.log("totalBytes: ", this.totalBytes);
-      console.log("newRate: ", this.rate);
-      this.chunkSize = this.rate / 5;
-       this.rateLast = this.rate;
+//      console.log("totalBytes: ", this.totalBytes);
+//      console.log("newRate: ", this.rate);
+      this.chunkSize = this.rate / 10;
+      this.rateLast = this.rate;
   }
 
   var expected = totalSeconds * this.rate;
